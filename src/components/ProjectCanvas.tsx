@@ -9,6 +9,7 @@ const nodeTypes = { note: NoteNode };
 export default function ProjectCanvas({ projectId }: { projectId: string }) {
   const notes = useWorkspaceStore((s) => s.notes);
   const storeEdges = useWorkspaceStore((s) => s.edges);
+  const activeTagFilter = useWorkspaceStore((s) => s.activeTagFilter);
   const addNote = useWorkspaceStore((s) => s.addNote);
   const moveNote = useWorkspaceStore((s) => s.moveNote);
   const deleteNote = useWorkspaceStore((s) => s.deleteNote);
@@ -16,8 +17,13 @@ export default function ProjectCanvas({ projectId }: { projectId: string }) {
   const deleteEdge = useWorkspaceStore((s) => s.deleteEdge);
 
   const projectNotes = useMemo(
-    () => notes.filter((n) => n.projectId === projectId),
-    [notes, projectId],
+    () =>
+      notes.filter(
+        (n) =>
+          n.projectId === projectId &&
+          (activeTagFilter.length === 0 || n.tags.some((tag) => activeTagFilter.includes(tag))),
+      ),
+    [notes, projectId, activeTagFilter],
   );
 
   const nodes: Node[] = useMemo(
@@ -32,13 +38,14 @@ export default function ProjectCanvas({ projectId }: { projectId: string }) {
     [projectNotes],
   );
 
-  const edges: Edge[] = useMemo(
-    () =>
-      storeEdges
-        .filter((e) => e.scope === projectId)
-        .map((e) => ({ id: e.id, source: e.source, target: e.target })),
-    [storeEdges, projectId],
-  );
+  const edges: Edge[] = useMemo(() => {
+    const visibleIds = new Set(projectNotes.map((n) => n.id));
+    return storeEdges
+      .filter(
+        (e) => e.scope === projectId && visibleIds.has(e.source) && visibleIds.has(e.target),
+      )
+      .map((e) => ({ id: e.id, source: e.source, target: e.target }));
+  }, [storeEdges, projectId, projectNotes]);
 
   return (
     <ReactFlowProvider>

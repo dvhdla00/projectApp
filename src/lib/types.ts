@@ -4,6 +4,7 @@ export interface Project {
   color: string;
   x: number;
   y: number;
+  tags: string[];
   createdAt: number;
 }
 
@@ -16,6 +17,7 @@ export interface Note {
   y: number;
   width: number;
   height: number;
+  tags: string[];
   createdAt: number;
   updatedAt: number;
 }

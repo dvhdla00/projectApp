@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PROJECT_COLORS, useWorkspaceStore } from '../store/useWorkspaceStore';
+import TagEditor from './TagEditor';
 
 export default function NewProjectModal({
   x,
@@ -11,11 +12,20 @@ export default function NewProjectModal({
   onClose: () => void;
 }) {
   const addProject = useWorkspaceStore((s) => s.addProject);
+  const addProjectTag = useWorkspaceStore((s) => s.addProjectTag);
+  const allProjects = useWorkspaceStore((s) => s.projects);
   const [name, setName] = useState('');
   const [color, setColor] = useState(PROJECT_COLORS[0]);
+  const [tags, setTags] = useState<string[]>([]);
+
+  const tagSuggestions = useMemo(
+    () => Array.from(new Set(allProjects.flatMap((p) => p.tags))).sort(),
+    [allProjects],
+  );
 
   const submit = () => {
-    addProject(x, y, name.trim() || undefined, color);
+    const project = addProject(x, y, name.trim() || undefined, color);
+    for (const tag of tags) addProjectTag(project.id, tag);
     onClose();
   };
 
@@ -50,6 +60,15 @@ export default function NewProjectModal({
               title={c}
             />
           ))}
+        </div>
+        <span className="modal-label">Tags (optional)</span>
+        <div className="modal-tag-editor">
+          <TagEditor
+            tags={tags}
+            suggestions={tagSuggestions}
+            onAdd={(tag) => setTags((t) => (t.includes(tag) ? t : [...t, tag]))}
+            onRemove={(tag) => setTags((t) => t.filter((existing) => existing !== tag))}
+          />
         </div>
         <div className="modal-actions">
           <button className="btn-secondary" onClick={onClose}>

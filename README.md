@@ -29,6 +29,11 @@ and [dnd-kit](https://dndkit.com/) (kanban drag-and-drop).
   Notion-like Enter/Backspace behavior
 - **Kanban boards** — add/rename/delete columns and cards, drag cards within and across
   columns, drag to reorder columns
+- **Tags & filtering** — projects and notes can carry freeform tags (set at creation or
+  edited anytime); the canvas/grid toolbar gets a tag filter for the current context
+  (projects on the root canvas, notes inside a project)
+- **Note side panel** — open any note from the canvas or grid in a larger right-hand
+  panel for editing title, tags, and content
 - Everything autosaves to disk (via Electron's userData directory) or localStorage when
   run as a plain web app
 
@@ -75,8 +80,12 @@ npm run dist:mac
   page editor
 - `src/components/KanbanBoard.tsx` / `KanbanColumnView.tsx` / `KanbanCardView.tsx` — the
   kanban board, built on dnd-kit
+- `src/components/NoteSidePanel.tsx` — the right-hand note editing panel
+- `src/components/TagEditor.tsx` / `TagPills.tsx` / `TagFilterMenu.tsx` — shared tag
+  editing and filtering UI, used by notes and projects
 - `src/lib/storage.ts` — persistence, including migration of pages saved before the
-  block editor existed (a plain markdown string) into blocks
+  block editor existed (a plain markdown string) into blocks, and of projects/notes
+  saved before tags existed
 
 ## Roadmap
 

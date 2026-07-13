@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { PageNode } from '../lib/types';
 import NewProjectModal from './NewProjectModal';
+import TagFilterMenu from './TagFilterMenu';
 
 const CASCADE_STEP = 220;
 const CASCADE_WRAP = 8;
@@ -46,6 +47,18 @@ export default function Toolbar() {
 
   const projectNotesCount =
     view.mode === 'project' ? notes.filter((n) => n.projectId === view.projectId).length : 0;
+
+  const filterableTags = useMemo(() => {
+    if (view.mode === 'root') {
+      return Array.from(new Set(projects.flatMap((p) => p.tags))).sort();
+    }
+    if (view.mode === 'project' || view.mode === 'project-grid') {
+      return Array.from(
+        new Set(notes.filter((n) => n.projectId === view.projectId).flatMap((n) => n.tags)),
+      ).sort();
+    }
+    return [];
+  }, [view, projects, notes]);
 
   return (
     <div className="toolbar">
@@ -98,6 +111,7 @@ export default function Toolbar() {
         })}
       </div>
       <div className="toolbar-actions">
+        <TagFilterMenu availableTags={filterableTags} />
         {(view.mode === 'dashboard' || view.mode === 'root') && (
           <button className="btn-primary" onClick={() => setShowNewProject(true)}>
             + New Project

@@ -1,17 +1,28 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import type { Project } from '../../lib/types';
 import FolderIcon from '../FolderIcon';
+import TagPills from '../TagPills';
+import TagEditor from '../TagEditor';
 
 export type ProjectNodeType = { id: string; type: 'project'; data: { project: Project } };
 
 export default function ProjectNode({ data, selected }: NodeProps) {
   const project = data.project as Project;
+  const allProjects = useWorkspaceStore((s) => s.projects);
   const renameProject = useWorkspaceStore((s) => s.renameProject);
   const deleteProject = useWorkspaceStore((s) => s.deleteProject);
+  const addProjectTag = useWorkspaceStore((s) => s.addProjectTag);
+  const removeProjectTag = useWorkspaceStore((s) => s.removeProjectTag);
   const [editing, setEditing] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [draft, setDraft] = useState(project.name);
+
+  const tagSuggestions = useMemo(
+    () => Array.from(new Set(allProjects.flatMap((p) => p.tags))).sort(),
+    [allProjects],
+  );
 
   const commit = () => {
     setEditing(false);
@@ -70,8 +81,33 @@ export default function ProjectNode({ data, selected }: NodeProps) {
           >
             ✎
           </button>
+          <button
+            className="project-rename-btn"
+            onClick={() => setTagsOpen((o) => !o)}
+            title="Edit tags"
+          >
+            🏷
+          </button>
         </div>
       )}
+
+      {project.tags.length > 0 && (
+        <div className="project-tags-row nodrag">
+          <TagPills tags={project.tags} />
+        </div>
+      )}
+
+      {tagsOpen && (
+        <div className="project-tags-popover nodrag" onClick={(e) => e.stopPropagation()}>
+          <TagEditor
+            tags={project.tags}
+            suggestions={tagSuggestions}
+            onAdd={(tag) => addProjectTag(project.id, tag)}
+            onRemove={(tag) => removeProjectTag(project.id, tag)}
+          />
+        </div>
+      )}
+
       <div className="project-hint">double-click icon to open</div>
     </div>
   );

@@ -3,11 +3,13 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import type { Note } from '../../lib/types';
+import TagPills from '../TagPills';
 
 export default function NoteNode({ data, selected }: NodeProps) {
   const note = data.note as Note;
   const updateNote = useWorkspaceStore((s) => s.updateNote);
   const deleteNote = useWorkspaceStore((s) => s.deleteNote);
+  const openNotePanel = useWorkspaceStore((s) => s.openNotePanel);
   const [mode, setMode] = useState<'edit' | 'preview'>(note.content ? 'preview' : 'edit');
 
   return (
@@ -39,10 +41,23 @@ export default function NoteNode({ data, selected }: NodeProps) {
         >
           {mode === 'edit' ? '👁' : '✎'}
         </button>
+        <button
+          className="note-mode-toggle"
+          onClick={() => openNotePanel(note.id)}
+          title="Open in side panel"
+        >
+          ⤢
+        </button>
         <button className="node-delete" onClick={() => deleteNote(note.id)} title="Delete note">
           ×
         </button>
       </div>
+
+      {note.tags.length > 0 && (
+        <div className="note-tags-row nodrag">
+          <TagPills tags={note.tags} />
+        </div>
+      )}
 
       <div className="note-body nodrag nowheel">
         {mode === 'edit' ? (

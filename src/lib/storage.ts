@@ -56,6 +56,15 @@ function migratePages(workspace: Workspace): Workspace {
   return { ...workspace, pages };
 }
 
+/** Backfills `tags` on projects/notes saved before tagging existed. */
+function migrateTags(workspace: Workspace): Workspace {
+  return {
+    ...workspace,
+    projects: workspace.projects.map((p) => ({ ...p, tags: p.tags ?? [] })),
+    notes: workspace.notes.map((n) => ({ ...n, tags: n.tags ?? [] })),
+  };
+}
+
 export async function loadWorkspace(): Promise<Workspace> {
   const raw = window.workspaceApi
     ? await window.workspaceApi.load()
@@ -64,7 +73,7 @@ export async function loadWorkspace(): Promise<Workspace> {
   if (!raw) return emptyWorkspace();
   try {
     const parsed = JSON.parse(raw) as Workspace;
-    return migratePages({ ...emptyWorkspace(), ...parsed });
+    return migrateTags(migratePages({ ...emptyWorkspace(), ...parsed }));
   } catch {
     return emptyWorkspace();
   }

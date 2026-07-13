@@ -32,6 +32,8 @@ interface WorkspaceState {
   kanbanColumns: KanbanColumn[];
   kanbanCards: KanbanCard[];
   view: View;
+  openNoteId: string | null;
+  activeTagFilter: string[];
 
   init: () => Promise<void>;
 
@@ -39,11 +41,20 @@ interface WorkspaceState {
   renameProject: (id: string, name: string) => void;
   deleteProject: (id: string) => void;
   moveProject: (id: string, x: number, y: number) => void;
+  addProjectTag: (id: string, tag: string) => void;
+  removeProjectTag: (id: string, tag: string) => void;
 
   addNote: (projectId: string, x: number, y: number) => Note;
   updateNote: (id: string, patch: Partial<Pick<Note, 'title' | 'content' | 'width' | 'height'>>) => void;
   deleteNote: (id: string) => void;
   moveNote: (id: string, x: number, y: number) => void;
+  addNoteTag: (id: string, tag: string) => void;
+  removeNoteTag: (id: string, tag: string) => void;
+  openNotePanel: (id: string) => void;
+  closeNotePanel: () => void;
+
+  toggleTagFilter: (tag: string) => void;
+  clearTagFilter: () => void;
 
   addEdge: (scope: string, source: string, target: string) => void;
   deleteEdge: (id: string) => void;
@@ -123,6 +134,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   kanbanColumns: [],
   kanbanCards: [],
   view: { mode: 'dashboard' },
+  openNoteId: null,
+  activeTagFilter: [],
 
   init: async () => {
     const workspace = await loadWorkspace();
@@ -144,6 +157,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       color: color ?? PROJECT_COLORS[get().projects.length % PROJECT_COLORS.length],
       x,
       y,
+      tags: [],
       createdAt: Date.now(),
     };
     set((state) => {
@@ -194,6 +208,30 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
+  addProjectTag: (id, tag) => {
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+    set((state) => {
+      const projects = state.projects.map((p) =>
+        p.id === id && !p.tags.includes(trimmed) ? { ...p, tags: [...p.tags, trimmed] } : p,
+      );
+      const next = { ...state, projects };
+      persist(next);
+      return next;
+    });
+  },
+
+  removeProjectTag: (id, tag) => {
+    set((state) => {
+      const projects = state.projects.map((p) =>
+        p.id === id ? { ...p, tags: p.tags.filter((t) => t !== tag) } : p,
+      );
+      const next = { ...state, projects };
+      persist(next);
+      return next;
+    });
+  },
+
   addNote: (projectId, x, y) => {
     const note: Note = {
       id: nanoid(),
@@ -204,6 +242,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       y,
       width: 260,
       height: 180,
+      tags: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -230,7 +269,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((state) => {
       const notes = state.notes.filter((n) => n.id !== id);
       const edges = state.edges.filter((e) => e.source !== id && e.target !== id);
-      const next = { ...state, notes, edges };
+      const openNoteId = state.openNoteId === id ? null : state.openNoteId;
+      const next = { ...state, notes, edges, openNoteId };
       persist(next);
       return next;
     });
@@ -244,6 +284,43 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       return next;
     });
   },
+
+  addNoteTag: (id, tag) => {
+    const trimmed = tag.trim();
+    if (!trimmed) return;
+    set((state) => {
+      const notes = state.notes.map((n) =>
+        n.id === id && !n.tags.includes(trimmed)
+          ? { ...n, tags: [...n.tags, trimmed], updatedAt: Date.now() }
+          : n,
+      );
+      const next = { ...state, notes };
+      persist(next);
+      return next;
+    });
+  },
+
+  removeNoteTag: (id, tag) => {
+    set((state) => {
+      const notes = state.notes.map((n) =>
+        n.id === id ? { ...n, tags: n.tags.filter((t) => t !== tag), updatedAt: Date.now() } : n,
+      );
+      const next = { ...state, notes };
+      persist(next);
+      return next;
+    });
+  },
+
+  openNotePanel: (id) => set({ openNoteId: id }),
+  closeNotePanel: () => set({ openNoteId: null }),
+
+  toggleTagFilter: (tag) =>
+    set((state) => ({
+      activeTagFilter: state.activeTagFilter.includes(tag)
+        ? state.activeTagFilter.filter((t) => t !== tag)
+        : [...state.activeTagFilter, tag],
+    })),
+  clearTagFilter: () => set({ activeTagFilter: [] }),
 
   addEdge: (scope, source, target) => {
     if (source === target) return;
@@ -560,10 +637,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  enterProject: (id) => set({ view: { mode: 'project', projectId: id } }),
-  enterProjectGrid: (id) => set({ view: { mode: 'project-grid', projectId: id } }),
-  openPage: (projectId, pageId) => set({ view: { mode: 'page', projectId, pageId } }),
-  openKanban: (projectId, pageId) => set({ view: { mode: 'kanban', projectId, pageId } }),
-  goToRoot: () => set({ view: { mode: 'root' } }),
-  goToDashboard: () => set({ view: { mode: 'dashboard' } }),
+  enterProject: (id) =>
+    set({ view: { mode: 'project', projectId: id }, activeTagFilter: [], openNoteId: null }),
+  enterProjectGrid: (id) =>
+    set({ view: { mode: 'project-grid', projectId: id }, activeTagFilter: [], openNoteId: null }),
+  openPage: (projectId, pageId) =>
+    set({ view: { mode: 'page', projectId, pageId }, activeTagFilter: [], openNoteId: null }),
+  openKanban: (projectId, pageId) =>
+    set({ view: { mode: 'kanban', projectId, pageId }, activeTagFilter: [], openNoteId: null }),
+  goToRoot: () => set({ view: { mode: 'root' }, activeTagFilter: [], openNoteId: null }),
+  goToDashboard: () => set({ view: { mode: 'dashboard' }, activeTagFilter: [], openNoteId: null }),
 }));

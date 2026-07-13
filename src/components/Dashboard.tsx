@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import FolderIcon from './FolderIcon';
 import NewProjectModal from './NewProjectModal';
+import TagPills from './TagPills';
 
 function greeting() {
   const hour = new Date().getHours();
@@ -148,6 +149,7 @@ export default function Dashboard() {
             <span className="project-grid-card-sub">
               {projectNoteCounts.get(project.id) ?? 0} notes
             </span>
+            {project.tags.length > 0 && <TagPills tags={project.tags} />}
           </button>
         ))}
         <button className="project-grid-card project-grid-card-new" onClick={() => setShowNewProject(true)}>
