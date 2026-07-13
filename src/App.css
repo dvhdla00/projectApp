@@ -52,7 +52,20 @@ body {
   color: var(--text-muted);
 }
 
-.app-canvas {
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
   flex: 1;
   min-height: 0;
 }
@@ -62,13 +75,194 @@ body {
   height: 100%;
 }
 
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding-top: 44px; /* room for mac traffic-light window controls */
+  -webkit-app-region: drag;
+  overflow-y: auto;
+}
+
+.sidebar-workspace-link {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 12px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.sidebar-projects {
+  -webkit-app-region: no-drag;
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+.sidebar-empty-hint {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sidebar-project-name {
+  font-weight: 600;
+}
+
+/* Tree rows (projects + pages) */
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.tree-row:hover {
+  background: var(--bg);
+}
+
+.tree-row:hover .tree-row-actions {
+  opacity: 1;
+}
+
+.tree-row-active {
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.tree-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tree-chevron-spacer {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.tree-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tree-rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.tree-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.tree-icon-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 1px 3px;
+  line-height: 1;
+}
+
+.tree-icon-btn:hover {
+  color: var(--text);
+}
+
+.tree-delete:hover {
+  color: #e0625b;
+}
+
+.add-menu-wrap {
+  position: relative;
+}
+
+.add-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.add-menu button {
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.add-menu button:hover {
+  background: var(--bg);
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  padding-left: 84px; /* room for mac traffic-light window controls */
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   -webkit-app-region: drag;
@@ -79,6 +273,14 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.crumb-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .crumb {
@@ -321,4 +523,234 @@ body {
 
 .note-node .node-delete:hover {
   color: #e0625b;
+}
+
+/* Page view */
+.page-view {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px;
+}
+
+.page-view-header {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.page-title-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  outline: none;
+}
+
+.page-mode-toggle {
+  flex-shrink: 0;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.page-body {
+  width: 100%;
+  max-width: 720px;
+}
+
+.page-textarea {
+  width: 100%;
+  min-height: 60vh;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.page-markdown {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  cursor: text;
+  min-height: 60vh;
+}
+
+.page-markdown :is(h1, h2, h3) {
+  margin: 20px 0 10px;
+}
+
+.page-markdown p {
+  margin: 0 0 12px;
+}
+
+.page-markdown ul,
+.page-markdown ol {
+  margin: 0 0 12px;
+  padding-left: 24px;
+}
+
+/* Kanban board */
+.kanban-board {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 20px;
+}
+
+.kanban-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  height: 100%;
+}
+
+.kanban-column {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.kanban-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.kanban-column-title {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+}
+
+.kanban-card-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.kanban-drop-end {
+  min-height: 8px;
+  flex: 1;
+  border-radius: 6px;
+}
+
+.kanban-drop-over {
+  background: var(--accent);
+  opacity: 0.15;
+}
+
+.kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: var(--shadow);
+  cursor: grab;
+}
+
+.kanban-card-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kanban-card-title {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+}
+
+.kanban-card-description {
+  margin-top: 6px;
+  width: 100%;
+  min-height: 60px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.kanban-add-card {
+  padding: 4px 8px 10px;
+}
+
+.kanban-add-card input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px;
+  outline: none;
+}
+
+.kanban-add-card input:focus {
+  color: var(--text);
+}
+
+.kanban-add-column {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.kanban-add-column input {
+  width: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 10px;
+  outline: none;
+}
+
+.kanban-add-column input:focus {
+  color: var(--text);
+  border-style: solid;
 }
