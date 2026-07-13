@@ -30,14 +30,33 @@ export interface CanvasEdge {
 
 export type PageType = 'folder' | 'page' | 'kanban';
 
+export type BlockType =
+  | 'paragraph'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulleted'
+  | 'numbered'
+  | 'todo'
+  | 'quote'
+  | 'callout'
+  | 'divider';
+
+export interface Block {
+  id: string;
+  type: BlockType;
+  text: string;
+  checked?: boolean;
+}
+
 export interface PageNode {
   id: string;
   projectId: string;
   parentId: string | null;
   type: PageType;
   title: string;
-  /** markdown body, only meaningful when type === 'page' */
-  content: string;
+  /** block content, only meaningful when type === 'page' */
+  blocks: Block[];
   order: number;
   createdAt: number;
   updatedAt: number;

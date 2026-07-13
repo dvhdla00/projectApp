@@ -2,8 +2,10 @@ import '@xyflow/react/dist/style.css';
 import { useEffect } from 'react';
 import Toolbar from './components/Toolbar';
 import Sidebar from './components/Sidebar';
+import Dashboard from './components/Dashboard';
 import RootCanvas from './components/RootCanvas';
 import ProjectCanvas from './components/ProjectCanvas';
+import ProjectGrid from './components/ProjectGrid';
 import PageView from './components/PageView';
 import KanbanBoard from './components/KanbanBoard';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
@@ -27,9 +29,13 @@ function App() {
         <div className="app-main">
           <Toolbar />
           <div className="app-content">
+            {view.mode === 'dashboard' && <Dashboard />}
             {view.mode === 'root' && <RootCanvas />}
             {view.mode === 'project' && (
               <ProjectCanvas key={view.projectId} projectId={view.projectId} />
+            )}
+            {view.mode === 'project-grid' && (
+              <ProjectGrid key={view.projectId} projectId={view.projectId} />
             )}
             {view.mode === 'page' && <PageView key={view.pageId} pageId={view.pageId} />}
             {view.mode === 'kanban' && <KanbanBoard key={view.pageId} pageId={view.pageId} />}

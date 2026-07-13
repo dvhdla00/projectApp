@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { PageNode } from '../lib/types';
+import NewProjectModal from './NewProjectModal';
 
 const CASCADE_STEP = 220;
 const CASCADE_WRAP = 8;
@@ -25,15 +27,19 @@ export default function Toolbar() {
   const projects = useWorkspaceStore((s) => s.projects);
   const pages = useWorkspaceStore((s) => s.pages);
   const notes = useWorkspaceStore((s) => s.notes);
-  const goToRoot = useWorkspaceStore((s) => s.goToRoot);
+  const goToDashboard = useWorkspaceStore((s) => s.goToDashboard);
   const enterProject = useWorkspaceStore((s) => s.enterProject);
-  const addProject = useWorkspaceStore((s) => s.addProject);
+  const enterProjectGrid = useWorkspaceStore((s) => s.enterProjectGrid);
   const addNote = useWorkspaceStore((s) => s.addNote);
   const openPage = useWorkspaceStore((s) => s.openPage);
   const openKanban = useWorkspaceStore((s) => s.openKanban);
 
-  const currentProject =
-    view.mode !== 'root' ? projects.find((p) => p.id === view.projectId) : undefined;
+  const [showNewProject, setShowNewProject] = useState(false);
+
+  const hasProjectContext = view.mode !== 'root' && view.mode !== 'dashboard';
+  const currentProject = hasProjectContext
+    ? projects.find((p) => p.id === view.projectId)
+    : undefined;
 
   const pageChain =
     view.mode === 'page' || view.mode === 'kanban' ? pageAncestorChain(pages, view.pageId) : [];
@@ -45,16 +51,22 @@ export default function Toolbar() {
     <div className="toolbar">
       <div className="toolbar-breadcrumb">
         <button
-          className={`crumb${view.mode === 'root' ? ' crumb-current' : ''}`}
-          onClick={goToRoot}
+          className={`crumb${view.mode === 'dashboard' ? ' crumb-current' : ''}`}
+          onClick={goToDashboard}
         >
-          Workspace
+          Dashboard
         </button>
+        {view.mode === 'root' && (
+          <>
+            <span className="crumb-sep">/</span>
+            <span className="crumb crumb-current">Canvas</span>
+          </>
+        )}
         {currentProject && (
           <>
             <span className="crumb-sep">/</span>
             <button
-              className={`crumb${view.mode === 'project' ? ' crumb-current' : ''}`}
+              className={`crumb${view.mode === 'project' || view.mode === 'project-grid' ? ' crumb-current' : ''}`}
               onClick={() => enterProject(currentProject.id)}
             >
               {currentProject.name}
@@ -86,20 +98,33 @@ export default function Toolbar() {
         })}
       </div>
       <div className="toolbar-actions">
-        {view.mode === 'root' && (
-          <button
-            className="toolbar-btn"
-            onClick={() => {
-              const { x, y } = cascadePosition(projects.length);
-              addProject(x, y);
-            }}
-          >
-            + Project
+        {(view.mode === 'dashboard' || view.mode === 'root') && (
+          <button className="btn-primary" onClick={() => setShowNewProject(true)}>
+            + New Project
           </button>
         )}
         {view.mode === 'project' && (
+          <div className="toolbar-view-toggle">
+            <button className="view-toggle-btn view-toggle-active">Canvas</button>
+            <button
+              className="view-toggle-btn"
+              onClick={() => enterProjectGrid(view.projectId)}
+            >
+              Grid
+            </button>
+          </div>
+        )}
+        {view.mode === 'project-grid' && (
+          <div className="toolbar-view-toggle">
+            <button className="view-toggle-btn" onClick={() => enterProject(view.projectId)}>
+              Canvas
+            </button>
+            <button className="view-toggle-btn view-toggle-active">Grid</button>
+          </div>
+        )}
+        {view.mode === 'project' && (
           <button
-            className="toolbar-btn"
+            className="btn-primary"
             onClick={() => {
               if (view.mode !== 'project') return;
               const { x, y } = cascadePosition(projectNotesCount);
@@ -109,7 +134,11 @@ export default function Toolbar() {
             + Note
           </button>
         )}
+        <span className="avatar toolbar-avatar">U</span>
       </div>
+      {showNewProject && (
+        <NewProjectModal x={120} y={120} onClose={() => setShowNewProject(false)} />
+      )}
     </div>
   );
 }

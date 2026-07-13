@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import { loadWorkspace, saveWorkspace } from '../lib/storage';
 import type {
+  Block,
+  BlockType,
   CanvasEdge,
   KanbanCard,
   KanbanColumn,
@@ -12,12 +14,14 @@ import type {
 } from '../lib/types';
 
 export type View =
+  | { mode: 'dashboard' }
   | { mode: 'root' }
   | { mode: 'project'; projectId: string }
+  | { mode: 'project-grid'; projectId: string }
   | { mode: 'page'; projectId: string; pageId: string }
   | { mode: 'kanban'; projectId: string; pageId: string };
 
-const PROJECT_COLORS = ['#e8a33d', '#5b8def', '#5bc4a0', '#d16ba5', '#8d7ae0', '#e0625b'];
+export const PROJECT_COLORS = ['#e8a33d', '#5b8def', '#5bc4a0', '#d16ba5', '#8d7ae0', '#e0625b'];
 
 interface WorkspaceState {
   loaded: boolean;
@@ -31,7 +35,7 @@ interface WorkspaceState {
 
   init: () => Promise<void>;
 
-  addProject: (x: number, y: number) => Project;
+  addProject: (x: number, y: number, name?: string, color?: string) => Project;
   renameProject: (id: string, name: string) => void;
   deleteProject: (id: string) => void;
   moveProject: (id: string, x: number, y: number) => void;
@@ -46,7 +50,12 @@ interface WorkspaceState {
 
   addPage: (projectId: string, parentId: string | null, type: PageType, title?: string) => PageNode;
   renamePage: (id: string, title: string) => void;
-  updatePageContent: (id: string, content: string) => void;
+  addBlock: (pageId: string, afterBlockId: string | null, type: BlockType) => Block;
+  updateBlockText: (pageId: string, blockId: string, text: string) => void;
+  setBlockType: (pageId: string, blockId: string, type: BlockType) => void;
+  toggleBlockChecked: (pageId: string, blockId: string) => void;
+  deleteBlock: (pageId: string, blockId: string) => void;
+  moveBlock: (pageId: string, blockId: string, direction: 'up' | 'down') => void;
   deletePage: (id: string) => void;
   moveSiblingPage: (id: string, direction: 'up' | 'down') => void;
 
@@ -61,9 +70,11 @@ interface WorkspaceState {
   moveKanbanCard: (cardId: string, toColumnId: string, toIndex: number) => void;
 
   enterProject: (id: string) => void;
+  enterProjectGrid: (id: string) => void;
   openPage: (projectId: string, pageId: string) => void;
   openKanban: (projectId: string, pageId: string) => void;
   goToRoot: () => void;
+  goToDashboard: () => void;
 }
 
 type PersistSlice = Pick<
@@ -111,7 +122,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   pages: [],
   kanbanColumns: [],
   kanbanCards: [],
-  view: { mode: 'root' },
+  view: { mode: 'dashboard' },
 
   init: async () => {
     const workspace = await loadWorkspace();
@@ -126,11 +137,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  addProject: (x, y) => {
+  addProject: (x, y, name, color) => {
     const project: Project = {
       id: nanoid(),
-      name: 'New Project',
-      color: PROJECT_COLORS[get().projects.length % PROJECT_COLORS.length],
+      name: name?.trim() || 'New Project',
+      color: color ?? PROJECT_COLORS[get().projects.length % PROJECT_COLORS.length],
       x,
       y,
       createdAt: Date.now(),
@@ -267,7 +278,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       parentId,
       type,
       title: title ?? (type === 'folder' ? 'New Folder' : type === 'kanban' ? 'New Board' : 'Untitled'),
-      content: '',
+      blocks: [{ id: nanoid(), type: 'paragraph', text: '' }],
       order: siblingCount,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -291,11 +302,109 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  updatePageContent: (id, content) => {
+  addBlock: (pageId, afterBlockId, type) => {
+    const block: Block = {
+      id: nanoid(),
+      type,
+      text: '',
+      ...(type === 'todo' ? { checked: false } : {}),
+    };
+    set((state) => {
+      const pages = state.pages.map((p) => {
+        if (p.id !== pageId) return p;
+        const blocks = [...p.blocks];
+        const insertAt = afterBlockId
+          ? blocks.findIndex((b) => b.id === afterBlockId) + 1
+          : blocks.length;
+        blocks.splice(insertAt, 0, block);
+        return { ...p, blocks, updatedAt: Date.now() };
+      });
+      const next = { ...state, pages };
+      persist(next);
+      return next;
+    });
+    return block;
+  },
+
+  updateBlockText: (pageId, blockId, text) => {
     set((state) => {
       const pages = state.pages.map((p) =>
-        p.id === id ? { ...p, content, updatedAt: Date.now() } : p,
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, text } : b)),
+              updatedAt: Date.now(),
+            }
+          : p,
       );
+      const next = { ...state, pages };
+      persist(next);
+      return next;
+    });
+  },
+
+  setBlockType: (pageId, blockId, type) => {
+    set((state) => {
+      const pages = state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId
+                  ? { ...b, type, checked: type === 'todo' ? (b.checked ?? false) : undefined }
+                  : b,
+              ),
+              updatedAt: Date.now(),
+            }
+          : p,
+      );
+      const next = { ...state, pages };
+      persist(next);
+      return next;
+    });
+  },
+
+  toggleBlockChecked: (pageId, blockId) => {
+    set((state) => {
+      const pages = state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) => (b.id === blockId ? { ...b, checked: !b.checked } : b)),
+              updatedAt: Date.now(),
+            }
+          : p,
+      );
+      const next = { ...state, pages };
+      persist(next);
+      return next;
+    });
+  },
+
+  deleteBlock: (pageId, blockId) => {
+    set((state) => {
+      const pages = state.pages.map((p) => {
+        if (p.id !== pageId) return p;
+        const blocks = p.blocks.filter((b) => b.id !== blockId);
+        return { ...p, blocks: blocks.length > 0 ? blocks : p.blocks, updatedAt: Date.now() };
+      });
+      const next = { ...state, pages };
+      persist(next);
+      return next;
+    });
+  },
+
+  moveBlock: (pageId, blockId, direction) => {
+    set((state) => {
+      const pages = state.pages.map((p) => {
+        if (p.id !== pageId) return p;
+        const blocks = [...p.blocks];
+        const index = blocks.findIndex((b) => b.id === blockId);
+        const swapWith = direction === 'up' ? index - 1 : index + 1;
+        if (index === -1 || swapWith < 0 || swapWith >= blocks.length) return p;
+        [blocks[index], blocks[swapWith]] = [blocks[swapWith], blocks[index]];
+        return { ...p, blocks, updatedAt: Date.now() };
+      });
       const next = { ...state, pages };
       persist(next);
       return next;
@@ -452,7 +561,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   enterProject: (id) => set({ view: { mode: 'project', projectId: id } }),
+  enterProjectGrid: (id) => set({ view: { mode: 'project-grid', projectId: id } }),
   openPage: (projectId, pageId) => set({ view: { mode: 'page', projectId, pageId } }),
   openKanban: (projectId, pageId) => set({ view: { mode: 'kanban', projectId, pageId } }),
   goToRoot: () => set({ view: { mode: 'root' } }),
+  goToDashboard: () => set({ view: { mode: 'dashboard' } }),
 }));

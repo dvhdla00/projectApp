@@ -1,14 +1,34 @@
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import type { BlockType } from '../lib/types';
+import BlockRow from './BlockRow';
 
 export default function PageView({ pageId }: { pageId: string }) {
   const page = useWorkspaceStore((s) => s.pages.find((p) => p.id === pageId));
   const renamePage = useWorkspaceStore((s) => s.renamePage);
-  const updatePageContent = useWorkspaceStore((s) => s.updatePageContent);
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const addBlock = useWorkspaceStore((s) => s.addBlock);
+  const deleteBlock = useWorkspaceStore((s) => s.deleteBlock);
+  const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
 
   if (!page) return null;
+
+  const continueType = (type: BlockType): BlockType =>
+    type === 'bulleted' || type === 'numbered' || type === 'todo' ? type : 'paragraph';
+
+  const handleEnter = (blockId: string, type: BlockType) => {
+    const newBlock = addBlock(page.id, blockId, continueType(type));
+    setFocusBlockId(newBlock.id);
+  };
+
+  const handleBackspaceEmpty = (blockId: string) => {
+    const index = page.blocks.findIndex((b) => b.id === blockId);
+    if (page.blocks.length <= 1) return;
+    const prev = page.blocks[index - 1];
+    deleteBlock(page.id, blockId);
+    if (prev) setFocusBlockId(prev.id);
+  };
+
+  let numberedRun = 0;
 
   return (
     <div className="page-view">
@@ -19,31 +39,33 @@ export default function PageView({ pageId }: { pageId: string }) {
           placeholder="Untitled"
           onChange={(e) => renamePage(page.id, e.target.value)}
         />
-        <button
-          className="toolbar-btn page-mode-toggle"
-          onClick={() => setMode((m) => (m === 'edit' ? 'preview' : 'edit'))}
-        >
-          {mode === 'edit' ? 'Preview' : 'Edit'}
-        </button>
       </div>
       <div className="page-body">
-        {mode === 'edit' ? (
-          <textarea
-            className="page-textarea"
-            value={page.content}
-            placeholder="Write in markdown…"
-            onChange={(e) => updatePageContent(page.id, e.target.value)}
-            autoFocus
-          />
-        ) : (
-          <div className="page-markdown" onDoubleClick={() => setMode('edit')}>
-            {page.content ? (
-              <ReactMarkdown>{page.content}</ReactMarkdown>
-            ) : (
-              <span className="note-empty-hint">Empty — double-click to edit</span>
-            )}
-          </div>
-        )}
+        {page.blocks.map((block) => {
+          numberedRun = block.type === 'numbered' ? numberedRun + 1 : 0;
+          return (
+            <BlockRow
+              key={block.id}
+              pageId={page.id}
+              block={block}
+              numberLabel={block.type === 'numbered' ? numberedRun : undefined}
+              autoFocus={focusBlockId === block.id}
+              onFocused={() => setFocusBlockId(null)}
+              onEnter={() => handleEnter(block.id, block.type)}
+              onBackspaceEmpty={() => handleBackspaceEmpty(block.id)}
+            />
+          );
+        })}
+        <button
+          className="block-add-row"
+          onClick={() => {
+            const last = page.blocks[page.blocks.length - 1];
+            const newBlock = addBlock(page.id, last?.id ?? null, 'paragraph');
+            setFocusBlockId(newBlock.id);
+          }}
+        >
+          + Add a block
+        </button>
       </div>
     </div>
   );

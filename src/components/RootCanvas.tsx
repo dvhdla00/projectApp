@@ -1,7 +1,8 @@
 import { ReactFlowProvider, type Edge, type Node } from '@xyflow/react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import BoardCanvas from './BoardCanvas';
 import ProjectNode from './nodes/ProjectNode';
+import NewProjectModal from './NewProjectModal';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 
 const nodeTypes = { project: ProjectNode };
@@ -9,12 +10,12 @@ const nodeTypes = { project: ProjectNode };
 export default function RootCanvas() {
   const projects = useWorkspaceStore((s) => s.projects);
   const storeEdges = useWorkspaceStore((s) => s.edges);
-  const addProject = useWorkspaceStore((s) => s.addProject);
   const moveProject = useWorkspaceStore((s) => s.moveProject);
   const deleteProject = useWorkspaceStore((s) => s.deleteProject);
   const addEdge = useWorkspaceStore((s) => s.addEdge);
   const deleteEdge = useWorkspaceStore((s) => s.deleteEdge);
   const enterProject = useWorkspaceStore((s) => s.enterProject);
+  const [newProjectAt, setNewProjectAt] = useState<{ x: number; y: number } | null>(null);
 
   const nodes: Node[] = useMemo(
     () =>
@@ -45,9 +46,16 @@ export default function RootCanvas() {
         onNodeDelete={deleteProject}
         onConnect={(source, target) => addEdge('root', source, target)}
         onEdgeDelete={deleteEdge}
-        onPaneDoubleClick={(x, y) => addProject(x, y)}
+        onPaneDoubleClick={(x, y) => setNewProjectAt({ x, y })}
         onNodeDoubleClick={(id) => enterProject(id)}
       />
+      {newProjectAt && (
+        <NewProjectModal
+          x={newProjectAt.x}
+          y={newProjectAt.y}
+          onClose={() => setNewProjectAt(null)}
+        />
+      )}
     </ReactFlowProvider>
   );
 }

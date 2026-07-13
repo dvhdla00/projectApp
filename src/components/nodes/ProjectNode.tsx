@@ -2,6 +2,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useState } from 'react';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import type { Project } from '../../lib/types';
+import FolderIcon from '../FolderIcon';
 
 export type ProjectNodeType = { id: string; type: 'project'; data: { project: Project } };
 
@@ -37,10 +38,8 @@ export default function ProjectNode({ data, selected }: NodeProps) {
         ×
       </button>
 
-      <div className="project-folder-icon" style={{ color: project.color }}>
-        <svg viewBox="0 0 24 20" width="56" height="48" fill="currentColor">
-          <path d="M2 2h7l2 2h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
-        </svg>
+      <div className="project-folder-icon">
+        <FolderIcon color={project.color} size={56} />
       </div>
 
       {editing ? (
