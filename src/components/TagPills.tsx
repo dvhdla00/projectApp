@@ -1,3 +1,5 @@
+import { tagKindFor } from '../lib/tagColor';
+
 export default function TagPills({
   tags,
   onRemove,
@@ -9,7 +11,7 @@ export default function TagPills({
   return (
     <div className="tag-pills">
       {tags.map((tag) => (
-        <span key={tag} className="pill pill-gray tag-pill">
+        <span key={tag} className={`tag-pill tag-pill-${tagKindFor(tag)}`}>
           {tag}
           {onRemove && (
             <button

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { useWorkspaceStore, type ProjectTab } from '../store/useWorkspaceStore';
 import type { PageNode } from '../lib/types';
 import NewProjectModal from './NewProjectModal';
 import TagFilterMenu from './TagFilterMenu';
@@ -23,6 +23,13 @@ function pageAncestorChain(pages: PageNode[], pageId: string): PageNode[] {
   return chain;
 }
 
+const TABS: { id: ProjectTab; label: string }[] = [
+  { id: 'canvas', label: 'Canvas' },
+  { id: 'grid', label: 'Grid' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'graph', label: 'Graph' },
+];
+
 export default function Toolbar() {
   const view = useWorkspaceStore((s) => s.view);
   const projects = useWorkspaceStore((s) => s.projects);
@@ -30,7 +37,8 @@ export default function Toolbar() {
   const notes = useWorkspaceStore((s) => s.notes);
   const goToDashboard = useWorkspaceStore((s) => s.goToDashboard);
   const enterProject = useWorkspaceStore((s) => s.enterProject);
-  const enterProjectGrid = useWorkspaceStore((s) => s.enterProjectGrid);
+  const setProjectTab = useWorkspaceStore((s) => s.setProjectTab);
+  const selectNoteInProject = useWorkspaceStore((s) => s.selectNoteInProject);
   const addNote = useWorkspaceStore((s) => s.addNote);
   const openPage = useWorkspaceStore((s) => s.openPage);
   const openKanban = useWorkspaceStore((s) => s.openKanban);
@@ -52,7 +60,7 @@ export default function Toolbar() {
     if (view.mode === 'root') {
       return Array.from(new Set(projects.flatMap((p) => p.tags))).sort();
     }
-    if (view.mode === 'project' || view.mode === 'project-grid') {
+    if (view.mode === 'project' && (view.tab === 'canvas' || view.tab === 'grid')) {
       return Array.from(
         new Set(notes.filter((n) => n.projectId === view.projectId).flatMap((n) => n.tags)),
       ).sort();
@@ -79,7 +87,7 @@ export default function Toolbar() {
           <>
             <span className="crumb-sep">/</span>
             <button
-              className={`crumb${view.mode === 'project' || view.mode === 'project-grid' ? ' crumb-current' : ''}`}
+              className={`crumb${view.mode === 'project' ? ' crumb-current' : ''}`}
               onClick={() => enterProject(currentProject.id)}
             >
               {currentProject.name}
@@ -119,30 +127,25 @@ export default function Toolbar() {
         )}
         {view.mode === 'project' && (
           <div className="toolbar-view-toggle">
-            <button className="view-toggle-btn view-toggle-active">Canvas</button>
-            <button
-              className="view-toggle-btn"
-              onClick={() => enterProjectGrid(view.projectId)}
-            >
-              Grid
-            </button>
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`view-toggle-btn${view.tab === tab.id ? ' view-toggle-active' : ''}`}
+                onClick={() => setProjectTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         )}
-        {view.mode === 'project-grid' && (
-          <div className="toolbar-view-toggle">
-            <button className="view-toggle-btn" onClick={() => enterProject(view.projectId)}>
-              Canvas
-            </button>
-            <button className="view-toggle-btn view-toggle-active">Grid</button>
-          </div>
-        )}
-        {view.mode === 'project' && (
+        {view.mode === 'project' && view.tab !== 'graph' && (
           <button
             className="btn-primary"
             onClick={() => {
               if (view.mode !== 'project') return;
               const { x, y } = cascadePosition(projectNotesCount);
-              addNote(view.projectId, x, y);
+              const note = addNote(view.projectId, x, y);
+              if (view.tab === 'notes') selectNoteInProject(note.id, 'notes');
             }}
           >
             + Note

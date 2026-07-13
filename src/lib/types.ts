@@ -8,6 +8,12 @@ export interface Project {
   createdAt: number;
 }
 
+export interface NoteComment {
+  id: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface Note {
   id: string;
   projectId: string;
@@ -18,6 +24,7 @@ export interface Note {
   width: number;
   height: number;
   tags: string[];
+  comments: NoteComment[];
   createdAt: number;
   updatedAt: number;
 }

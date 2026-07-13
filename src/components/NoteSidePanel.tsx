@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import TagEditor from './TagEditor';
+import NoteMarkdown from './NoteMarkdown';
+import NoteComments from './NoteComments';
 
 export default function NoteSidePanel({ noteId }: { noteId: string }) {
   const note = useWorkspaceStore((s) => s.notes.find((n) => n.id === noteId));
@@ -57,18 +58,22 @@ export default function NoteSidePanel({ noteId }: { noteId: string }) {
           <textarea
             className="note-side-panel-textarea"
             value={note.content}
-            placeholder="Write in markdown…"
+            placeholder="Write in markdown… link other notes with [[Note Title]]"
             onChange={(e) => updateNote(note.id, { content: e.target.value })}
           />
         ) : (
           <div className="note-markdown" onDoubleClick={() => setMode('edit')}>
             {note.content ? (
-              <ReactMarkdown>{note.content}</ReactMarkdown>
+              <NoteMarkdown content={note.content} />
             ) : (
               <span className="note-empty-hint">Empty — double-click to edit</span>
             )}
           </div>
         )}
+      </div>
+
+      <div className="note-side-panel-section">
+        <NoteComments noteId={note.id} comments={note.comments} />
       </div>
     </div>
   );

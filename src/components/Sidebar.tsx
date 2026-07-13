@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '../store/useWorkspaceStore';
 import type { Project } from '../lib/types';
 import AddPageMenu from './AddPageMenu';
 import PageTreeItem from './PageTreeItem';
+import FolderIcon from './FolderIcon';
 
 const TYPE_ICON: Record<string, string> = { folder: '📁', page: '📄', kanban: '📋' };
 
@@ -21,8 +22,7 @@ function ProjectSection({ project }: { project: Project }) {
     [pages, project.id],
   );
 
-  const canvasActive =
-    (view.mode === 'project' || view.mode === 'project-grid') && view.projectId === project.id;
+  const canvasActive = view.mode === 'project' && view.projectId === project.id;
 
   return (
     <div className="sidebar-project">
@@ -36,7 +36,9 @@ function ProjectSection({ project }: { project: Project }) {
         >
           {expanded ? '▾' : '▸'}
         </button>
-        <span className="sidebar-project-dot" style={{ background: project.color }} />
+        <span className="sidebar-project-icon">
+          <FolderIcon color={project.color} size={14} />
+        </span>
         <span className="tree-label sidebar-project-name">{project.name}</span>
         <span className="tree-row-actions">
           <AddPageMenu onAdd={(type) => addPage(project.id, null, type)} />
@@ -110,7 +112,7 @@ export default function Sidebar() {
     <div className="sidebar">
       <div className="sidebar-header">
         <span className="sidebar-logo">◆</span>
-        <span className="sidebar-app-name">Boards</span>
+        <span className="sidebar-app-name">Waypoint</span>
       </div>
 
       <div className="sidebar-search">
@@ -155,7 +157,9 @@ export default function Sidebar() {
                   onClick={() => enterProject(hit.id)}
                 >
                   <span className="tree-chevron-spacer" />
-                  <span className="sidebar-project-dot" style={{ background: hit.project.color }} />
+                  <span className="sidebar-project-icon">
+                    <FolderIcon color={hit.project.color} size={14} />
+                  </span>
                   <span className="tree-label">{hit.title}</span>
                 </div>
               );

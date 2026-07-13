@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { tagKindFor } from '../lib/tagColor';
 
 export default function TagFilterMenu({ availableTags }: { availableTags: string[] }) {
   const activeTagFilter = useWorkspaceStore((s) => s.activeTagFilter);
@@ -24,7 +25,7 @@ export default function TagFilterMenu({ availableTags }: { availableTags: string
                 className={`tag-filter-option${active ? ' tag-filter-option-active' : ''}`}
                 onClick={() => toggleTagFilter(tag)}
               >
-                <span className="pill pill-gray">{tag}</span>
+                <span className={`tag-pill tag-pill-${tagKindFor(tag)}`}>{tag}</span>
                 {active && <span className="tag-filter-check">✓</span>}
               </button>
             );

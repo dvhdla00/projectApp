@@ -65,6 +65,14 @@ function migrateTags(workspace: Workspace): Workspace {
   };
 }
 
+/** Backfills `comments` on notes saved before comment threads existed. */
+function migrateComments(workspace: Workspace): Workspace {
+  return {
+    ...workspace,
+    notes: workspace.notes.map((n) => ({ ...n, comments: n.comments ?? [] })),
+  };
+}
+
 export async function loadWorkspace(): Promise<Workspace> {
   const raw = window.workspaceApi
     ? await window.workspaceApi.load()
@@ -73,7 +81,7 @@ export async function loadWorkspace(): Promise<Workspace> {
   if (!raw) return emptyWorkspace();
   try {
     const parsed = JSON.parse(raw) as Workspace;
-    return migrateTags(migratePages({ ...emptyWorkspace(), ...parsed }));
+    return migrateComments(migrateTags(migratePages({ ...emptyWorkspace(), ...parsed })));
   } catch {
     return emptyWorkspace();
   }

@@ -1,9 +1,10 @@
 import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
 import { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import type { Note } from '../../lib/types';
 import TagPills from '../TagPills';
+import NoteMarkdown from '../NoteMarkdown';
+import NoteComments from '../NoteComments';
 
 export default function NoteNode({ data, selected }: NodeProps) {
   const note = data.note as Note;
@@ -17,7 +18,7 @@ export default function NoteNode({ data, selected }: NodeProps) {
       <NodeResizer
         isVisible={selected}
         minWidth={200}
-        minHeight={120}
+        minHeight={140}
         onResizeEnd={(_e, params) =>
           updateNote(note.id, { width: params.width, height: params.height })
         }
@@ -64,18 +65,22 @@ export default function NoteNode({ data, selected }: NodeProps) {
           <textarea
             className="note-textarea"
             value={note.content}
-            placeholder="Write in markdown…"
+            placeholder="Write in markdown… link other notes with [[Note Title]]"
             onChange={(e) => updateNote(note.id, { content: e.target.value })}
           />
         ) : (
           <div className="note-markdown" onDoubleClick={() => setMode('edit')}>
             {note.content ? (
-              <ReactMarkdown>{note.content}</ReactMarkdown>
+              <NoteMarkdown content={note.content} />
             ) : (
               <span className="note-empty-hint">Empty — double-click to edit</span>
             )}
           </div>
         )}
+      </div>
+
+      <div className="note-comments-wrap nodrag">
+        <NoteComments noteId={note.id} comments={note.comments} compact />
       </div>
     </div>
   );

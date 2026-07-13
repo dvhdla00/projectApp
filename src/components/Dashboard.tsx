@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { computeBacklinks } from '../lib/wikiLinks';
 import FolderIcon from './FolderIcon';
 import NewProjectModal from './NewProjectModal';
 import TagPills from './TagPills';
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const openPage = useWorkspaceStore((s) => s.openPage);
   const openKanban = useWorkspaceStore((s) => s.openKanban);
   const goToRoot = useWorkspaceStore((s) => s.goToRoot);
+  const selectNoteInProject = useWorkspaceStore((s) => s.selectNoteInProject);
   const [showNewProject, setShowNewProject] = useState(false);
 
   const pageCount = pages.filter((p) => p.type === 'page').length;
@@ -104,77 +106,135 @@ export default function Dashboard() {
     return items.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8);
   }, [notes, pages, kanbanCards, kanbanColumns, projects, enterProject, openPage, openKanban]);
 
+  const allTags = useMemo(
+    () =>
+      Array.from(new Set([...projects.flatMap((p) => p.tags), ...notes.flatMap((n) => n.tags)])).sort(),
+    [projects, notes],
+  );
+
+  const pinnedNotes = useMemo(
+    () =>
+      [...notes]
+        .map((n) => ({ note: n, backlinkCount: computeBacklinks(n, notes).length }))
+        .filter((n) => n.backlinkCount > 0)
+        .sort((a, b) => b.backlinkCount - a.backlinkCount)
+        .slice(0, 5),
+    [notes],
+  );
+
   return (
-    <div className="dashboard">
-      <div className="dashboard-greeting">
-        <h1>{greeting()}!</h1>
-        <p>Here&rsquo;s what&rsquo;s happening across your workspace.</p>
-      </div>
+    <div className="dashboard-layout">
+      <div className="dashboard">
+        <div className="dashboard-greeting">
+          <h1>{greeting()}!</h1>
+          <p>Here&rsquo;s what&rsquo;s happening across your workspace.</p>
+        </div>
 
-      <div className="stat-tiles">
-        <button className="stat-tile" onClick={goToRoot}>
-          <span className="stat-tile-icon pill-blue">🗺</span>
-          <span className="stat-tile-value">{projects.length}</span>
-          <span className="stat-tile-label">Active Projects</span>
-        </button>
-        <div className="stat-tile">
-          <span className="stat-tile-icon pill-green">🗒</span>
-          <span className="stat-tile-value">{notes.length}</span>
-          <span className="stat-tile-label">Canvas Notes</span>
-        </div>
-        <div className="stat-tile">
-          <span className="stat-tile-icon pill-purple">📄</span>
-          <span className="stat-tile-value">{pageCount}</span>
-          <span className="stat-tile-label">Pages</span>
-        </div>
-        <div className="stat-tile">
-          <span className="stat-tile-icon pill-orange">📋</span>
-          <span className="stat-tile-value">{boardCount}</span>
-          <span className="stat-tile-label">Kanban Boards</span>
-        </div>
-      </div>
-
-      <div className="dashboard-section-header">
-        <h2>Projects</h2>
-      </div>
-      <div className="project-grid">
-        {projects.map((project) => (
-          <button
-            key={project.id}
-            className="project-grid-card"
-            onClick={() => enterProject(project.id)}
-          >
-            <FolderIcon color={project.color} size={48} />
-            <span className="project-grid-card-title">{project.name}</span>
-            <span className="project-grid-card-sub">
-              {projectNoteCounts.get(project.id) ?? 0} notes
-            </span>
-            {project.tags.length > 0 && <TagPills tags={project.tags} />}
+        <div className="stat-tiles">
+          <button className="stat-tile" onClick={goToRoot}>
+            <span className="stat-tile-icon pill-blue">🗺</span>
+            <span className="stat-tile-value">{projects.length}</span>
+            <span className="stat-tile-label">Active Projects</span>
           </button>
-        ))}
-        <button className="project-grid-card project-grid-card-new" onClick={() => setShowNewProject(true)}>
-          <span className="project-grid-card-plus">+</span>
-          <span className="project-grid-card-title">New Project</span>
-        </button>
+          <div className="stat-tile">
+            <span className="stat-tile-icon pill-green">🗒</span>
+            <span className="stat-tile-value">{notes.length}</span>
+            <span className="stat-tile-label">Canvas Notes</span>
+          </div>
+          <div className="stat-tile">
+            <span className="stat-tile-icon pill-purple">📄</span>
+            <span className="stat-tile-value">{pageCount}</span>
+            <span className="stat-tile-label">Pages</span>
+          </div>
+          <div className="stat-tile">
+            <span className="stat-tile-icon pill-orange">📋</span>
+            <span className="stat-tile-value">{boardCount}</span>
+            <span className="stat-tile-label">Kanban Boards</span>
+          </div>
+        </div>
+
+        <div className="dashboard-section-header">
+          <h2>Projects</h2>
+        </div>
+        <div className="project-grid">
+          {projects.map((project) => (
+            <button
+              key={project.id}
+              className="project-grid-card"
+              onClick={() => enterProject(project.id)}
+            >
+              <FolderIcon color={project.color} size={48} />
+              <span className="project-grid-card-title">{project.name}</span>
+              <span className="project-grid-card-sub">
+                {projectNoteCounts.get(project.id) ?? 0} notes
+              </span>
+              {project.tags.length > 0 && <TagPills tags={project.tags} />}
+            </button>
+          ))}
+          <button className="project-grid-card project-grid-card-new" onClick={() => setShowNewProject(true)}>
+            <span className="project-grid-card-plus">+</span>
+            <span className="project-grid-card-title">New Project</span>
+          </button>
+        </div>
+
+        {recentItems.length > 0 && (
+          <>
+            <div className="dashboard-section-header">
+              <h2>Recent</h2>
+            </div>
+            <div className="card recent-list">
+              {recentItems.map((item) => (
+                <button key={item.id} className="recent-row" onClick={item.onOpen}>
+                  <span className="tree-icon">{item.icon}</span>
+                  <span className="recent-row-title">{item.title}</span>
+                  <span className="recent-row-project">{item.projectName}</span>
+                  <span className="recent-row-time">{timeAgo(item.updatedAt)}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {recentItems.length > 0 && (
-        <>
-          <div className="dashboard-section-header">
-            <h2>Recent</h2>
+      <div className="dashboard-side">
+        <div className="dashboard-side-section">
+          <span className="modal-label">Vault info</span>
+          <div className="dashboard-vault-row">
+            <span>Notes</span>
+            <span className="dashboard-vault-value">{notes.length}</span>
           </div>
-          <div className="card recent-list">
-            {recentItems.map((item) => (
-              <button key={item.id} className="recent-row" onClick={item.onOpen}>
-                <span className="tree-icon">{item.icon}</span>
-                <span className="recent-row-title">{item.title}</span>
-                <span className="recent-row-project">{item.projectName}</span>
-                <span className="recent-row-time">{timeAgo(item.updatedAt)}</span>
+          <div className="dashboard-vault-row">
+            <span>Pages</span>
+            <span className="dashboard-vault-value">{pageCount}</span>
+          </div>
+          <div className="dashboard-vault-row">
+            <span>Projects</span>
+            <span className="dashboard-vault-value">{projects.length}</span>
+          </div>
+        </div>
+
+        {allTags.length > 0 && (
+          <div className="dashboard-side-section">
+            <span className="modal-label">Tags</span>
+            <TagPills tags={allTags} />
+          </div>
+        )}
+
+        {pinnedNotes.length > 0 && (
+          <div className="dashboard-side-section">
+            <span className="modal-label">Pinned</span>
+            {pinnedNotes.map(({ note }) => (
+              <button
+                key={note.id}
+                className="notes-tab-link-item"
+                onClick={() => selectNoteInProject(note.id, 'notes')}
+              >
+                {note.title || 'Untitled'}
               </button>
             ))}
           </div>
-        </>
-      )}
+        )}
+      </div>
 
       {showNewProject && (
         <NewProjectModal

@@ -8,20 +8,22 @@ import type {
   KanbanCard,
   KanbanColumn,
   Note,
+  NoteComment,
   PageNode,
   PageType,
   Project,
 } from '../lib/types';
 
+export type ProjectTab = 'canvas' | 'grid' | 'notes' | 'graph';
+
 export type View =
   | { mode: 'dashboard' }
   | { mode: 'root' }
-  | { mode: 'project'; projectId: string }
-  | { mode: 'project-grid'; projectId: string }
+  | { mode: 'project'; projectId: string; tab: ProjectTab; selectedNoteId: string | null }
   | { mode: 'page'; projectId: string; pageId: string }
   | { mode: 'kanban'; projectId: string; pageId: string };
 
-export const PROJECT_COLORS = ['#e8a33d', '#5b8def', '#5bc4a0', '#d16ba5', '#8d7ae0', '#e0625b'];
+export const PROJECT_COLORS = ['#F491B0', '#EA6F97', '#D9527E', '#33323A', '#5B5A63', '#8B8A92'];
 
 interface WorkspaceState {
   loaded: boolean;
@@ -50,6 +52,8 @@ interface WorkspaceState {
   moveNote: (id: string, x: number, y: number) => void;
   addNoteTag: (id: string, tag: string) => void;
   removeNoteTag: (id: string, tag: string) => void;
+  addNoteComment: (id: string, text: string) => void;
+  deleteNoteComment: (id: string, commentId: string) => void;
   openNotePanel: (id: string) => void;
   closeNotePanel: () => void;
 
@@ -80,8 +84,9 @@ interface WorkspaceState {
   deleteKanbanCard: (id: string) => void;
   moveKanbanCard: (cardId: string, toColumnId: string, toIndex: number) => void;
 
-  enterProject: (id: string) => void;
-  enterProjectGrid: (id: string) => void;
+  enterProject: (id: string, tab?: ProjectTab) => void;
+  setProjectTab: (tab: ProjectTab) => void;
+  selectNoteInProject: (noteId: string, tab?: ProjectTab) => void;
   openPage: (projectId: string, pageId: string) => void;
   openKanban: (projectId: string, pageId: string) => void;
   goToRoot: () => void;
@@ -243,6 +248,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       width: 260,
       height: 180,
       tags: [],
+      comments: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -304,6 +310,31 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set((state) => {
       const notes = state.notes.map((n) =>
         n.id === id ? { ...n, tags: n.tags.filter((t) => t !== tag), updatedAt: Date.now() } : n,
+      );
+      const next = { ...state, notes };
+      persist(next);
+      return next;
+    });
+  },
+
+  addNoteComment: (id, text) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const comment: NoteComment = { id: nanoid(), text: trimmed, createdAt: Date.now() };
+    set((state) => {
+      const notes = state.notes.map((n) =>
+        n.id === id ? { ...n, comments: [...n.comments, comment] } : n,
+      );
+      const next = { ...state, notes };
+      persist(next);
+      return next;
+    });
+  },
+
+  deleteNoteComment: (id, commentId) => {
+    set((state) => {
+      const notes = state.notes.map((n) =>
+        n.id === id ? { ...n, comments: n.comments.filter((c) => c.id !== commentId) } : n,
       );
       const next = { ...state, notes };
       persist(next);
@@ -499,7 +530,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const kanbanCards = state.kanbanCards.filter((c) => !removedColumnIds.has(c.columnId));
       let view = state.view;
       if ((view.mode === 'page' || view.mode === 'kanban') && removedIds.has(view.pageId)) {
-        view = { mode: 'project', projectId: view.projectId };
+        view = { mode: 'project', projectId: view.projectId, tab: 'canvas', selectedNoteId: null };
       }
       const next = { ...state, pages, kanbanColumns, kanbanCards, view };
       persist(next);
@@ -637,10 +668,23 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     });
   },
 
-  enterProject: (id) =>
-    set({ view: { mode: 'project', projectId: id }, activeTagFilter: [], openNoteId: null }),
-  enterProjectGrid: (id) =>
-    set({ view: { mode: 'project-grid', projectId: id }, activeTagFilter: [], openNoteId: null }),
+  enterProject: (id, tab = 'canvas') =>
+    set({
+      view: { mode: 'project', projectId: id, tab, selectedNoteId: null },
+      activeTagFilter: [],
+      openNoteId: null,
+    }),
+  setProjectTab: (tab) =>
+    set((state) => (state.view.mode === 'project' ? { view: { ...state.view, tab } } : state)),
+  selectNoteInProject: (noteId, tab = 'notes') => {
+    const note = get().notes.find((n) => n.id === noteId);
+    if (!note) return;
+    set({
+      view: { mode: 'project', projectId: note.projectId, tab, selectedNoteId: noteId },
+      activeTagFilter: [],
+      openNoteId: null,
+    });
+  },
   openPage: (projectId, pageId) =>
     set({ view: { mode: 'page', projectId, pageId }, activeTagFilter: [], openNoteId: null }),
   openKanban: (projectId, pageId) =>

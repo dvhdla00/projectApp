@@ -41,8 +41,8 @@
     "wait-on": "^9.0.10"
   },
   "build": {
-    "appId": "com.projectapp.noteboard",
-    "productName": "ProjectApp",
+    "appId": "com.projectapp.waypoint",
+    "productName": "Waypoint",
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
